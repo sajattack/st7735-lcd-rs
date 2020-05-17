@@ -156,6 +156,22 @@ where
         self.write_data(&value.to_be_bytes())
     }
 
+    fn write_words_buffered(&mut self, words: impl IntoIterator<Item = u16>) -> Result<(), ()>{
+        let mut buffer = [0; 32];
+        let mut index = 0;
+        for word in words {
+            let as_bytes = word.to_be_bytes();
+            buffer[index] = as_bytes[0];
+            buffer[index+1] = as_bytes[1];
+            index += 2;
+            if index >= buffer.len() {
+                self.write_data(&buffer);
+                index = 0;
+            }
+        }
+        self.write_data(&buffer[0..index])
+    }
+
     pub fn set_orientation(&mut self, orientation: &Orientation) -> Result<(), ()> {
         if self.rgb {
             self.write_command(Instruction::MADCTL, Some(&[orientation.to_u8().unwrap()]))?;
@@ -203,6 +219,11 @@ where
         }
         Ok(())
     }
+    pub fn write_pixels_fast<P: IntoIterator<Item = u16>>(&mut self, colors: P) -> Result<(), ()> {
+        self.write_command(Instruction::RAMWR, None)?;
+        self.start_data()?;
+        self.write_words_buffered(colors)
+    }
 
     /// Sets pixel colors at the given drawing window
     pub fn set_pixels<P: IntoIterator<Item = u16>>(
@@ -216,6 +237,18 @@ where
         self.set_address_window(sx, sy, ex, ey)?;
         self.write_pixels(colors)
     }
+
+    pub fn set_pixels_fast<P: IntoIterator<Item = u16>>(
+        &mut self,
+        sx: u16,
+        sy: u16,
+        ex: u16,
+        ey: u16,
+        colors: P,
+    ) -> Result<(), ()> {
+        self.set_address_window(sx, sy, ex, ey)?;
+        self.write_pixels_fast(colors)
+    }
 }
 
 #[cfg(feature = "graphics")]
@@ -227,6 +260,8 @@ use self::embedded_graphics::{
         raw::{RawData, RawU16},
         Rgb565,
     },
+    primitives::Rectangle,
+    style::{Styled, PrimitiveStyle},
     prelude::*,
     DrawTarget,
 };
@@ -243,6 +278,54 @@ where
     fn draw_pixel(&mut self, pixel: Pixel<Rgb565>) -> Result<(), Self::Error> {
         let Pixel(Point { x, y }, color) = pixel;
         self.set_pixel(x as u16, y as u16, RawU16::from(color).into_inner())
+    }
+
+    fn draw_rectangle(
+        &mut self,
+        item: &Styled<Rectangle, PrimitiveStyle<Rgb565>>
+    ) -> Result<(), Self::Error> {
+        let shape = item.primitive;
+        let rect_width = shape.bottom_right.x - item.primitive.top_left.x;
+        let rect_height = shape.bottom_right.y - item.primitive.top_left.y;
+        let rect_size = rect_width * rect_height;
+
+        match (item.style.fill_color, item.style.stroke_color) {
+            (Some(fill), None) => {
+                let color = RawU16::from(fill).into_inner();
+                let iter = (0..rect_size).map(move |_| color);
+                self.set_pixels_fast(
+                    shape.top_left.x as u16,
+                    shape.top_left.y as u16,
+                    shape.bottom_right.x as u16,
+                    shape.bottom_right.y as u16,
+                    iter,
+                )
+            },
+            (Some(fill), Some(stroke)) => {
+                let fill_color = RawU16::from(fill).into_inner();
+                let stroke_color = RawU16::from(stroke).into_inner();
+                let iter = (0..rect_size).map(move |i| {
+                    if i % rect_width <= item.style.stroke_width as i32
+                    || i % rect_width >= rect_width - item.style.stroke_width as i32
+                    || i <= item.style.stroke_width as i32 * rect_width
+                    || i >= (rect_height - item.style.stroke_width as i32) * rect_width
+                    {
+                        stroke_color
+                    }
+                    else {
+                        fill_color
+                    }
+                });
+                self.set_pixels_fast(
+                    shape.top_left.x as u16,
+                    shape.top_left.y as u16,
+                    shape.bottom_right.x as u16,
+                    shape.bottom_right.y as u16,
+                    iter,
+                )
+            },
+            _ => unimplemented!("Unsupported rect style") // TODO: Remove
+        }
     }
 
     fn size(&self) -> Size {
