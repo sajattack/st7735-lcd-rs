@@ -262,6 +262,7 @@ use self::embedded_graphics::{
     },
     primitives::Rectangle,
     style::{Styled, PrimitiveStyle},
+    image::Image,
     prelude::*,
     DrawTarget,
 };
@@ -324,8 +325,37 @@ where
                     iter,
                 )
             },
-            _ => unimplemented!("Unsupported rect style") // TODO: Remove
+            // TODO: Draw edges as subrectangles
+            (None, Some(_)) => {
+                self.draw_iter(item)
+            }
+            (None, None) => {
+                self.draw_iter(item)
+            }
         }
+    }
+
+    fn draw_image<'a, 'b, I>(
+        &mut self,
+        item: &'a Image<'b, I, Rgb565>
+    ) -> Result<(), Self::Error>
+    where
+        &'b I: IntoPixelIter<Rgb565>,
+        I: ImageDimensions,
+    {
+        let sx = item.top_left().x as u16;
+        let sy = item.top_left().y as u16;
+        let ex = item.bottom_right().x as u16;
+        let ey = item.bottom_right().y as u16;
+        // -1 is required because image gets skewed if it is not present
+        // NOTE: Is this also required for draw_rect?
+        self.set_pixels_fast(
+            sx,
+            sy,
+            ex-1,
+            ey-1,
+            item.into_iter().map(|p| RawU16::from(p.1).into_inner()),
+        )
     }
 
     fn size(&self) -> Size {
