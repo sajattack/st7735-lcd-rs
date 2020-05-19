@@ -219,7 +219,7 @@ where
         }
         Ok(())
     }
-    pub fn write_pixels_fast<P: IntoIterator<Item = u16>>(&mut self, colors: P) -> Result<(), ()> {
+    pub fn write_pixels_buffered<P: IntoIterator<Item = u16>>(&mut self, colors: P) -> Result<(), ()> {
         self.write_command(Instruction::RAMWR, None)?;
         self.start_data()?;
         self.write_words_buffered(colors)
@@ -238,7 +238,7 @@ where
         self.write_pixels(colors)
     }
 
-    pub fn set_pixels_fast<P: IntoIterator<Item = u16>>(
+    pub fn set_pixels_buffered<P: IntoIterator<Item = u16>>(
         &mut self,
         sx: u16,
         sy: u16,
@@ -247,7 +247,7 @@ where
         colors: P,
     ) -> Result<(), ()> {
         self.set_address_window(sx, sy, ex, ey)?;
-        self.write_pixels_fast(colors)
+        self.write_pixels_buffered(colors)
     }
 }
 
@@ -294,7 +294,7 @@ where
             (Some(fill), None) => {
                 let color = RawU16::from(fill).into_inner();
                 let iter = (0..rect_size).map(move |_| color);
-                self.set_pixels_fast(
+                self.set_pixels_buffered(
                     shape.top_left.x as u16,
                     shape.top_left.y as u16,
                     shape.bottom_right.x as u16,
@@ -317,7 +317,7 @@ where
                         fill_color
                     }
                 });
-                self.set_pixels_fast(
+                self.set_pixels_buffered(
                     shape.top_left.x as u16,
                     shape.top_left.y as u16,
                     shape.bottom_right.x as u16,
@@ -349,7 +349,7 @@ where
         let ey = item.bottom_right().y as u16;
         // -1 is required because image gets skewed if it is not present
         // NOTE: Is this also required for draw_rect?
-        self.set_pixels_fast(
+        self.set_pixels_buffered(
             sx,
             sy,
             ex-1,
