@@ -22,8 +22,9 @@ version = "0.2"
 default-features = false
 
 [dependencies.embedded-graphics]
+git = "https://github.com/jamwaffles/embedded-graphics.git"
 optional = true
-version = "0.6.0"
+rev = "e4ed4b0469de6bdc4ddc6ecdae40c811ac58cb18"
 
 [features]
 default = ["graphics"]
