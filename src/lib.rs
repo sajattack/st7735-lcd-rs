@@ -156,13 +156,13 @@ where
         self.write_data(&value.to_be_bytes())
     }
 
-    fn write_words_buffered(&mut self, words: impl IntoIterator<Item = u16>) -> Result<(), ()>{
+    fn write_words_buffered(&mut self, words: impl IntoIterator<Item = u16>) -> Result<(), ()> {
         let mut buffer = [0; 32];
         let mut index = 0;
         for word in words {
             let as_bytes = word.to_be_bytes();
             buffer[index] = as_bytes[0];
-            buffer[index+1] = as_bytes[1];
+            buffer[index + 1] = as_bytes[1];
             index += 2;
             if index >= buffer.len() {
                 self.write_data(&buffer)?;
@@ -219,7 +219,10 @@ where
         }
         Ok(())
     }
-    pub fn write_pixels_buffered<P: IntoIterator<Item = u16>>(&mut self, colors: P) -> Result<(), ()> {
+    pub fn write_pixels_buffered<P: IntoIterator<Item = u16>>(
+        &mut self,
+        colors: P,
+    ) -> Result<(), ()> {
         self.write_command(Instruction::RAMWR, None)?;
         self.start_data()?;
         self.write_words_buffered(colors)
@@ -255,13 +258,13 @@ where
 extern crate embedded_graphics;
 #[cfg(feature = "graphics")]
 use self::embedded_graphics::{
+    draw_target::DrawTarget,
     pixelcolor::{
         raw::{RawData, RawU16},
         Rgb565,
     },
-    primitives::Rectangle,
     prelude::*,
-    DrawTarget,
+    primitives::Rectangle,
 };
 
 #[cfg(feature = "graphics")]
@@ -318,7 +321,14 @@ where
 
         Ok(())
     }
+}
 
+impl<SPI, DC, RST> OriginDimensions for ST7735<SPI, DC, RST>
+where
+    SPI: spi::Write<u8>,
+    DC: OutputPin,
+    RST: OutputPin,
+{
     fn size(&self) -> Size {
         Size::new(self.width, self.height)
     }
