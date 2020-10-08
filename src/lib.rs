@@ -307,7 +307,7 @@ where
         let drawable_area = area.intersection(&Rectangle::new(Point::zero(), self.size()));
 
         if drawable_area.size != Size::zero() {
-            self.set_pixels(
+            self.set_pixels_buffered(
                 drawable_area.top_left.x as u16,
                 drawable_area.top_left.y as u16,
                 (drawable_area.top_left.x + (drawable_area.size.width - 1) as i32) as u16,
