@@ -323,6 +323,7 @@ where
     }
 }
 
+#[cfg(feature = "graphics")]
 impl<SPI, DC, RST> OriginDimensions for ST7735<SPI, DC, RST>
 where
     SPI: spi::Write<u8>,
