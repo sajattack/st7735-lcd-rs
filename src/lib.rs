@@ -85,35 +85,35 @@ where
         DELAY: DelayMs<u8>,
     {
         self.hard_reset(delay)?;
-        self.write_command(Instruction::SWRESET, None)?;
+        self.write_command(Instruction::SWRESET, &[])?;
         delay.delay_ms(200);
-        self.write_command(Instruction::SLPOUT, None)?;
+        self.write_command(Instruction::SLPOUT, &[])?;
         delay.delay_ms(200);
-        self.write_command(Instruction::FRMCTR1, Some(&[0x01, 0x2C, 0x2D]))?;
-        self.write_command(Instruction::FRMCTR2, Some(&[0x01, 0x2C, 0x2D]))?;
+        self.write_command(Instruction::FRMCTR1, &[0x01, 0x2C, 0x2D])?;
+        self.write_command(Instruction::FRMCTR2, &[0x01, 0x2C, 0x2D])?;
         self.write_command(
             Instruction::FRMCTR3,
-            Some(&[0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D]),
+            &[0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D],
         )?;
-        self.write_command(Instruction::INVCTR, Some(&[0x07]))?;
-        self.write_command(Instruction::PWCTR1, Some(&[0xA2, 0x02, 0x84]))?;
-        self.write_command(Instruction::PWCTR2, Some(&[0xC5]))?;
-        self.write_command(Instruction::PWCTR3, Some(&[0x0A, 0x00]))?;
-        self.write_command(Instruction::PWCTR4, Some(&[0x8A, 0x2A]))?;
-        self.write_command(Instruction::PWCTR5, Some(&[0x8A, 0xEE]))?;
-        self.write_command(Instruction::VMCTR1, Some(&[0x0E]))?;
+        self.write_command(Instruction::INVCTR, &[0x07])?;
+        self.write_command(Instruction::PWCTR1, &[0xA2, 0x02, 0x84])?;
+        self.write_command(Instruction::PWCTR2, &[0xC5])?;
+        self.write_command(Instruction::PWCTR3, &[0x0A, 0x00])?;
+        self.write_command(Instruction::PWCTR4, &[0x8A, 0x2A])?;
+        self.write_command(Instruction::PWCTR5, &[0x8A, 0xEE])?;
+        self.write_command(Instruction::VMCTR1, &[0x0E])?;
         if self.inverted {
-            self.write_command(Instruction::INVON, None)?;
+            self.write_command(Instruction::INVON, &[])?;
         } else {
-            self.write_command(Instruction::INVOFF, None)?;
+            self.write_command(Instruction::INVOFF, &[])?;
         }
         if self.rgb {
-            self.write_command(Instruction::MADCTL, Some(&[0x00]))?;
+            self.write_command(Instruction::MADCTL, &[0x00])?;
         } else {
-            self.write_command(Instruction::MADCTL, Some(&[0x08]))?;
+            self.write_command(Instruction::MADCTL, &[0x08])?;
         }
-        self.write_command(Instruction::COLMOD, Some(&[0x05]))?;
-        self.write_command(Instruction::DISPON, None)?;
+        self.write_command(Instruction::COLMOD, &[0x05])?;
+        self.write_command(Instruction::DISPON, &[])?;
         delay.delay_ms(200);
         Ok(())
     }
@@ -129,14 +129,12 @@ where
         self.rst.set_high().map_err(|_| ())
     }
 
-    fn write_command(&mut self, command: Instruction, params: Option<&[u8]>) -> Result<(), ()> {
+    fn write_command(&mut self, command: Instruction, params: &[u8]) -> Result<(), ()> {
         self.dc.set_low().map_err(|_| ())?;
-        self.spi
-            .write(&[command as u8])
-            .map_err(|_| ())?;
-        if params.is_some() {
+        self.spi.write(&[command as u8]).map_err(|_| ())?;
+        if !params.is_empty() {
             self.start_data()?;
-            self.write_data(params.unwrap())?;
+            self.write_data(params)?;
         }
         Ok(())
     }
@@ -172,12 +170,9 @@ where
 
     pub fn set_orientation(&mut self, orientation: &Orientation) -> Result<(), ()> {
         if self.rgb {
-            self.write_command(Instruction::MADCTL, Some(&[*orientation as u8]))?;
+            self.write_command(Instruction::MADCTL, &[*orientation as u8])?;
         } else {
-            self.write_command(
-                Instruction::MADCTL,
-                Some(&[*orientation as u8 | 0x08]),
-            )?;
+            self.write_command(Instruction::MADCTL, &[*orientation as u8 | 0x08])?;
         }
         Ok(())
     }
@@ -190,11 +185,11 @@ where
 
     /// Sets the address window for the display.
     fn set_address_window(&mut self, sx: u16, sy: u16, ex: u16, ey: u16) -> Result<(), ()> {
-        self.write_command(Instruction::CASET, None)?;
+        self.write_command(Instruction::CASET, &[])?;
         self.start_data()?;
         self.write_word(sx + self.dx)?;
         self.write_word(ex + self.dx)?;
-        self.write_command(Instruction::RASET, None)?;
+        self.write_command(Instruction::RASET, &[])?;
         self.start_data()?;
         self.write_word(sy + self.dy)?;
         self.write_word(ey + self.dy)
@@ -203,14 +198,14 @@ where
     /// Sets a pixel color at the given coords.
     pub fn set_pixel(&mut self, x: u16, y: u16, color: u16) -> Result<(), ()> {
         self.set_address_window(x, y, x, y)?;
-        self.write_command(Instruction::RAMWR, None)?;
+        self.write_command(Instruction::RAMWR, &[])?;
         self.start_data()?;
         self.write_word(color)
     }
 
     /// Writes pixel colors sequentially into the current drawing window
     pub fn write_pixels<P: IntoIterator<Item = u16>>(&mut self, colors: P) -> Result<(), ()> {
-        self.write_command(Instruction::RAMWR, None)?;
+        self.write_command(Instruction::RAMWR, &[])?;
         self.start_data()?;
         for color in colors {
             self.write_word(color)?;
@@ -221,7 +216,7 @@ where
         &mut self,
         colors: P,
     ) -> Result<(), ()> {
-        self.write_command(Instruction::RAMWR, None)?;
+        self.write_command(Instruction::RAMWR, &[])?;
         self.start_data()?;
         self.write_words_buffered(colors)
     }
