@@ -91,10 +91,7 @@ where
         delay.delay_ms(200);
         self.write_command(Instruction::FRMCTR1, &[0x01, 0x2C, 0x2D])?;
         self.write_command(Instruction::FRMCTR2, &[0x01, 0x2C, 0x2D])?;
-        self.write_command(
-            Instruction::FRMCTR3,
-            &[0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D],
-        )?;
+        self.write_command(Instruction::FRMCTR3, &[0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D])?;
         self.write_command(Instruction::INVCTR, &[0x07])?;
         self.write_command(Instruction::PWCTR1, &[0xA2, 0x02, 0x84])?;
         self.write_command(Instruction::PWCTR2, &[0xC5])?;
@@ -313,6 +310,17 @@ where
         }
 
         Ok(())
+    }
+
+    fn clear(&mut self, color: Self::Color) -> Result<(), Self::Error> {
+        self.set_pixels_buffered(
+            0,
+            0,
+            self.width as u16 - 1,
+            self.height as u16 - 1,
+            core::iter::repeat(RawU16::from(color).into_inner())
+                .take((self.width * self.height) as usize),
+        )
     }
 }
 
