@@ -5,8 +5,6 @@
 pub mod instruction;
 
 use crate::instruction::Instruction;
-use num_derive::ToPrimitive;
-use num_traits::ToPrimitive;
 
 use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::blocking::spi;
@@ -42,7 +40,7 @@ where
 }
 
 /// Display orientation.
-#[derive(ToPrimitive)]
+#[derive(Clone, Copy)]
 pub enum Orientation {
     Portrait = 0x00,
     Landscape = 0x60,
@@ -134,7 +132,7 @@ where
     fn write_command(&mut self, command: Instruction, params: Option<&[u8]>) -> Result<(), ()> {
         self.dc.set_low().map_err(|_| ())?;
         self.spi
-            .write(&[command.to_u8().unwrap()])
+            .write(&[command as u8])
             .map_err(|_| ())?;
         if params.is_some() {
             self.start_data()?;
@@ -174,11 +172,11 @@ where
 
     pub fn set_orientation(&mut self, orientation: &Orientation) -> Result<(), ()> {
         if self.rgb {
-            self.write_command(Instruction::MADCTL, Some(&[orientation.to_u8().unwrap()]))?;
+            self.write_command(Instruction::MADCTL, Some(&[*orientation as u8]))?;
         } else {
             self.write_command(
                 Instruction::MADCTL,
-                Some(&[orientation.to_u8().unwrap() | 0x08]),
+                Some(&[*orientation as u8 | 0x08]),
             )?;
         }
         Ok(())
