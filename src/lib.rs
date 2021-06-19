@@ -181,7 +181,7 @@ where
     }
 
     /// Sets the address window for the display.
-    fn set_address_window(&mut self, sx: u16, sy: u16, ex: u16, ey: u16) -> Result<(), ()> {
+    pub fn set_address_window(&mut self, sx: u16, sy: u16, ex: u16, ey: u16) -> Result<(), ()> {
         self.write_command(Instruction::CASET, &[])?;
         self.start_data()?;
         self.write_word(sx + self.dx)?;
