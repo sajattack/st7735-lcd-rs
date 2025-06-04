@@ -12,4 +12,8 @@ jobs:
       run: rustup target install thumbv7em-none-eabihf
     - uses: actions/checkout@v1
     - name: Build
-      run: cargo build --release --target=thumbv7em-none-eabihf
+      run: cargo build --target=thumbv7em-none-eabihf
+    - name: Clippy
+      run: cargo clippy -- -Dwarnings
+    - name: Fmt
+      run: cargo fmt --check
