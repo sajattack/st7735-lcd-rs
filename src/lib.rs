@@ -364,8 +364,10 @@ where
             0,
             self.width as u16 - 1,
             self.height as u16 - 1,
-            core::iter::repeat(RawU16::from(color).into_inner())
-                .take((self.width * self.height) as usize),
+            core::iter::repeat_n(
+                RawU16::from(color).into_inner(),
+                (self.width * self.height) as usize,
+            ),
         )
     }
 }
