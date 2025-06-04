@@ -7,8 +7,8 @@ pub mod instruction;
 use crate::instruction::Instruction;
 
 use embedded_hal::delay::DelayNs;
-use embedded_hal::spi;
 use embedded_hal::digital::OutputPin;
+use embedded_hal::spi;
 
 /// ST7735 driver to connect to TFT displays.
 /// requires const generic BUFSIZE to be specified for write_words_buffered
@@ -52,7 +52,7 @@ pub enum Orientation {
 
 /// Errors
 #[derive(Clone, Copy, Debug)]
-pub enum Error<SE, GE>{
+pub enum Error<SE, GE> {
     Spi(SE),
     Gpio(GE),
 }
@@ -75,8 +75,7 @@ where
         width: u32,
         height: u32,
     ) -> Self {
-        ST7735::<SPI, DC, RST, BUFSIZE>
-        {
+        ST7735::<SPI, DC, RST, BUFSIZE> {
             spi,
             dc,
             rst,
@@ -90,7 +89,7 @@ where
     }
 
     /// Runs commands to initialize the display.
-    pub fn init<DELAY>(&mut self, delay: &mut DELAY) -> Result<(), Error<SE, GE>> 
+    pub fn init<DELAY>(&mut self, delay: &mut DELAY) -> Result<(), Error<SE, GE>>
     where
         DELAY: DelayNs,
     {
@@ -142,7 +141,9 @@ where
 
     fn write_command(&mut self, command: Instruction, params: &[u8]) -> Result<(), Error<SE, GE>> {
         self.dc.set_low().map_err(|e| Error::Gpio(e))?;
-        self.spi.write(&[command as u8]).map_err(|e| Error::Spi(e))?;
+        self.spi
+            .write(&[command as u8])
+            .map_err(|e| Error::Spi(e))?;
         if !params.is_empty() {
             self.start_data()?;
             self.write_data(params)?;
@@ -164,8 +165,10 @@ where
     }
 
     /// Writes multiples words with a buffer
-    fn write_words_buffered(&mut self, words: impl IntoIterator<Item = u16>) -> Result<(), Error<SE, GE>> 
-    {
+    fn write_words_buffered(
+        &mut self,
+        words: impl IntoIterator<Item = u16>,
+    ) -> Result<(), Error<SE, GE>> {
         let mut buffer = [0; BUFSIZE];
         let mut index = 0;
         for word in words {
@@ -198,7 +201,13 @@ where
     }
 
     /// Sets the address window for the display.
-    pub fn set_address_window(&mut self, sx: u16, sy: u16, ex: u16, ey: u16) -> Result<(), Error<SE, GE>> {
+    pub fn set_address_window(
+        &mut self,
+        sx: u16,
+        sy: u16,
+        ex: u16,
+        ey: u16,
+    ) -> Result<(), Error<SE, GE>> {
         self.write_command(Instruction::CASET, &[])?;
         self.start_data()?;
         self.write_word(sx + self.dx)?;
@@ -218,7 +227,10 @@ where
     }
 
     /// Writes pixel colors sequentially into the current drawing window
-    pub fn write_pixels<P: IntoIterator<Item = u16>>(&mut self, colors: P) -> Result<(), Error<SE, GE>> {
+    pub fn write_pixels<P: IntoIterator<Item = u16>>(
+        &mut self,
+        colors: P,
+    ) -> Result<(), Error<SE, GE>> {
         self.write_command(Instruction::RAMWR, &[])?;
         self.start_data()?;
         for color in colors {
@@ -264,13 +276,13 @@ where
     }
 
     /// Allows adjusting gamma correction on the display.
-    /// 
+    ///
     /// Takes in an array `pos` for positive polarity correction and an array `neg` for negative polarity correction.
-    /// 
+    ///
     /// The following values worked well on an ST7735S test device:
     /// pos: &[0x10, 0x0E, 0x02, 0x03, 0x0E, 0x07, 0x02, 0x07, 0x0A, 0x12, 0x27, 0x37, 0x00, 0x0D, 0x0E, 0x10]
     /// neg: &[0x10, 0x0E, 0x03, 0x03, 0x0F, 0x06, 0x02, 0x08, 0x0A, 0x13, 0x26, 0x36, 0x00, 0x0D, 0x0E, 0x10]
-    pub fn adjust_gamma(&mut self, pos: &[u8;16], neg: &[u8;16]) -> Result<(), Error<SE, GE>> {
+    pub fn adjust_gamma(&mut self, pos: &[u8; 16], neg: &[u8; 16]) -> Result<(), Error<SE, GE>> {
         self.write_command(Instruction::GMCTRP1, pos)?;
         self.write_command(Instruction::GMCTRN1, neg)
     }
